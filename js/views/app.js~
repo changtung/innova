@@ -1,0 +1,91 @@
+var app = app || {};
+
+  // The Application
+  // ---------------
+
+  // Our overall **AppView** is the top-level piece of UI.
+  app.AppView = Backbone.View.extend({
+
+    // Instead of generating a new element, bind to the existing skeleton of
+    // the App already present in the HTML.
+    el: '#itemapp',
+
+    // Our template for the line of statistics at the bottom of the app.
+    sumTemplate: _.template( $('#sum-template').html() ),
+
+// New
+    // Delegated events for creating new items
+    events: {
+      'keypress #add-item': 'createOnEnter'
+    },
+
+    // At initialization we bind to the relevant events on the `Items`
+    // collection, when items are added or changed.
+    initialize: function() {
+      this.$input-title = this.$('#new-item-title');
+      this.$input-price = this.$('#new-item-price');
+
+      this.$footer = this.$('#footer');
+      this.$main = this.$('#main');
+      this.$second = this.$('#second');
+
+      this.listenTo(app.Items, 'add', this.addOne);
+      this.listenTo(app.Items, 'reset', this.addAll);
+    },
+
+    // New
+    // Re-rendering the App just means refreshing the statistics -- the rest
+    // of the app doesn't change.
+    render: function() {
+      var bought = app.Items.bought().length;
+      var remaining = app.Items.remaining().length;
+
+      if ( app.Items.length ) {
+        this.$main.show();
+        this.$second.show();
+        this.$footer.show();
+
+        this.$footer.html(this.sumTemplate({
+          bought: bought,
+          sum: sum,//sum todo bought remaining count sum
+          remaining: remaining
+        }));
+    },
+
+    // Add a single item to the list by creating a view for it, and
+    // appending its element to the `<ul>`.
+    addOne: function( item ) {
+      var view = new app.ItemView({ model: item });
+      $('#item-list').append( view.render().el );
+    },
+
+    // Add all items in the **Items** collection at once.
+    addAll: function() {
+      this.$('#item-list').html('');
+      app.Items.each(this.addOne, this);
+    }
+
+
+    // New
+    // Generate the attributes for a new item.
+    newAttributes: function() {
+      return {
+        title: this.$input-title.val().trim(),
+        price: this.$input-price.val().trim(),
+        order: app.Items.nextOrder(),
+        bought: false
+      };
+    },
+    // New
+    // If you hit return in the main input field, create new Item model,
+    // persisting it to localStorage.
+    createOnEnter: function( event ) {
+      if ( event.which !== ENTER_KEY || !this.$input-title.val().trim() ) {
+        return;
+      }
+
+      app.Items.create( this.newAttributes() );
+      this.$input-title.val('');
+      this.$input-price.val('');
+    }
+  });
